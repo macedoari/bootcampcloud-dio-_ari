@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Função para criar grupos
+create_group() {
+    group_name=$1
+    if ! getent group $group_name > /dev/null 2>&1; then
+        groupadd $group_name
+        echo "Grupo '$group_name' criado."
+    else
+        echo "Grupo '$group_name' já existe."
+    fi
+}
+
+# Função para criar usuários e adicionar ao grupo
+create_user() {
+    user_name=$1
+    group_name=$2
+    user_dir=$3
+
+    if ! id -u $user_name > /dev/null 2>&1; then
+        useradd -m -d $user_dir -s /bin/bash -g $group_name $user_name
+        echo "Usuário '$user_name' criado e adicionado ao grupo '$group_name'."
+    else
+        echo "Usuário '$user_name' já existe."
+    fi
+
+    # Configurar permissões do diretório do usuário
+    if [ ! -d $user_dir ]; then
+        mkdir -p $user_dir
+    fi
+    chown $user_name:$group_name $user_dir
+    chmod 700 $user_dir
+    echo "Permissões definidas para o diretório '$user_dir'."
+}
+
+# Grupos a serem criados
+groups=("grupo1" "grupo2" "grupo3")
+
+# Usuários e suas respectivas configurações: nome do usuário, nome do grupo, diretório
+users=(
+    "usuario1:grupo1:/home/usuario1"
+    "usuario2:grupo1:/home/usuario2"
+    "usuario3:grupo2:/home/usuario3"
+    "usuario4:grupo2:/home/usuario4"
+    "usuario5:grupo3:/home/usuario5"
+)
+
+# Criar grupos
+for group in "${groups[@]}"; do
+    create_group $group
+done
+
+# Criar usuários e configurar diretórios e permissões
+for user in "${users[@]}"; do
+    IFS=":" read -r user_name group_name user_dir <<< "$user"
+    create_user $user_name $group_name $user_dir
+done
+
+echo "Infraestrutura de usuários e grupos configurada com sucesso."
